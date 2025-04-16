@@ -11,7 +11,7 @@
 #define OLED_CS    10
 #define OLED_RST   8
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RST, OLED_CS);
+Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RST, OLED_CS);
 RTC_DS1307 rtc;
 
 DateTime now;
@@ -35,9 +35,9 @@ void setup() {
   display.clearDisplay();
   
   // 显示开机画面
-  display.setTextSize(2);
+  display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(10,20);
+  display.setCursor(5,10);
   display.print("Smart Clock");
   display.display();
   delay(2000);
@@ -63,14 +63,10 @@ void loop() {
 void updateDisplay() {
   display.clearDisplay();
   
-  // 计算显示区域
-  int maxWidth = SCREEN_WIDTH;  // 128像素宽
-  int maxHeight = SCREEN_HEIGHT;  // 64像素高
-  
-  // 顶部日期显示 - 调整布局以适应屏幕
+  // 顶部日期显示
   display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
-  display.setCursor(2,2);
+  display.setCursor(0,0);
   display.print(now.year());
   display.print("-");
   if(now.month() < 10) display.print("0");
@@ -79,14 +75,37 @@ void updateDisplay() {
   if(now.day() < 10) display.print("0");
   display.print(now.day());
   
-  // 星期显示 - 确保在屏幕范围内
-  display.setCursor(maxWidth - 25, 2);
+  // 添加机械表盘 - 在日期右侧
+  const int clockX = 85;  // 表盘中心X坐标
+  const int clockY = 7;   // 表盘中心Y坐标
+  const int radius = 7;   // 表盘半径
+  
+  // 绘制表盘外圈
+  display.drawCircle(clockX, clockY, radius, SSD1306_WHITE);
+  
+  // 计算时针和分针的角度
+  float hourAngle = (now.hour() % 12 + now.minute() / 60.0) * 30 * PI / 180;
+  float minAngle = now.minute() * 6 * PI / 180;
+  
+  // 绘制时针（较短）
+  int hourX = clockX + (radius-2) * sin(hourAngle);
+  int hourY = clockY - (radius-2) * cos(hourAngle);
+  display.drawLine(clockX, clockY, hourX, hourY, SSD1306_WHITE);
+  
+  // 绘制分针（较长）
+  int minX = clockX + radius * sin(minAngle);
+  int minY = clockY - radius * cos(minAngle);
+  display.drawLine(clockX, clockY, minX, minY, SSD1306_WHITE);
+  
+  // 星期显示 - 调整位置
+  int maxWidth = SCREEN_WIDTH;  // 128像素宽
+  int maxHeight = SCREEN_HEIGHT;  // 64像素高
+  display.setCursor(maxWidth - 20, 0);
   display.print(getWeekday(now.dayOfTheWeek()));
-
-  // 中间时间显示 - 居中显示
+  
+  // 中间时间显示 - 调整大小和位置
   display.setTextSize(2);
-  int timeWidth = 12 * 8;  // 估算时间字符串宽度
-  display.setCursor((maxWidth - timeWidth) / 2, 18);
+  display.setCursor(10, 16);  // 左对齐，减少宽度需求
   if(now.hour()<10) display.print("0");
   display.print(now.hour());
   display.print(":");
@@ -95,26 +114,6 @@ void updateDisplay() {
   display.print(":");
   if(now.second()<10) display.print("0");
   display.print(now.second());
-
-  // 添加闹钟信息显示 - 确保在屏幕底部可见
-  display.setTextSize(1);
-  display.setCursor(10, maxHeight - 20);
-  if (alarmEnabled) {
-    display.print("Alarm: ");
-    if(alarmTime.hour()<10) display.print("0");
-    display.print(alarmTime.hour());
-    display.print(":");
-    if(alarmTime.minute()<10) display.print("0");
-    display.print(alarmTime.minute());
-    
-    // 如果闹钟正在响铃，显示提示
-    if(now.hour()==alarmTime.hour() && now.minute()==alarmTime.minute() && now.second()<3) {
-      display.setCursor((maxWidth - 56) / 2, maxHeight - 10);
-      display.print("RINGING!");
-    }
-  } else {
-    display.print("No Alarm");
-  }
 
   display.display();
 }
