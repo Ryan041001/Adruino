@@ -1,0 +1,24 @@
+# Python语音识别示例所需依赖包
+
+# 百度语音识别API调用示例项目依赖
+# 根据 baidu_speech_demo.py 实际使用的库构建
+
+# 百度AI开放平台SDK - 核心依赖
+baidu-aip>=4.16.0
+
+# 音频录制和处理 - 核心依赖
+pyaudio>=0.2.11
+
+# 音频文件处理 - 核心依赖（Python标准库wave模块无需安装）
+# wave模块是Python标准库的一部分
+
+# 音频播放库 - 可选依赖
+pygame>=2.1.0
+
+# 类型提示支持（Python 3.5+已内置typing模块）
+# typing模块在Python 3.5+中是标准库的一部分
+
+# 其他标准库模块（无需安装）：
+# - os: 文件系统操作
+# - json: JSON数据处理
+# - time: 时间相关功能
