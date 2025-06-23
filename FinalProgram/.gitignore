@@ -1,0 +1,17 @@
+# 忽略 .env 文件，其中包含敏感的 API 密钥
+.env
+
+# 忽略 Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 忽略日志文件
+logs/*.log
+
+# 忽略临时文件
+temp/
+
+# 忽略IDE配置文件
+.idea/

@@ -1,0 +1,58 @@
+{
+  "reminders": [
+    {
+      "id": "reminder_1750442244804",
+      "title": "健康检查提醒",
+      "content": "请测量血压、血糖等健康指标，记录身体状况",
+      "reminder_time": "2025-06-21T09:00:00",
+      "reminder_type": "health_check",
+      "priority": 2,
+      "is_recurring": true,
+      "recurrence_pattern": "daily",
+      "is_completed": false,
+      "created_time": "2025-06-21T01:57:24.804858",
+      "last_reminded": null,
+      "reminder_count": 0,
+      "max_reminders": 3,
+      "snooze_minutes": 10,
+      "voice_confirmation_required": false,
+      "family_notification": false
+    },
+    {
+      "id": "reminder_1750442244806",
+      "title": "健康检查提醒",
+      "content": "请测量血压、血糖等健康指标，记录身体状况",
+      "reminder_time": "2025-06-21T14:00:00",
+      "reminder_type": "health_check",
+      "priority": 2,
+      "is_recurring": true,
+      "recurrence_pattern": "daily",
+      "is_completed": false,
+      "created_time": "2025-06-21T01:57:24.806884",
+      "last_reminded": null,
+      "reminder_count": 0,
+      "max_reminders": 3,
+      "snooze_minutes": 10,
+      "voice_confirmation_required": false,
+      "family_notification": false
+    },
+    {
+      "id": "reminder_1750442244808",
+      "title": "健康检查提醒",
+      "content": "请测量血压、血糖等健康指标，记录身体状况",
+      "reminder_time": "2025-06-21T19:00:00",
+      "reminder_type": "health_check",
+      "priority": 2,
+      "is_recurring": true,
+      "recurrence_pattern": "daily",
+      "is_completed": false,
+      "created_time": "2025-06-21T01:57:24.808967",
+      "last_reminded": null,
+      "reminder_count": 0,
+      "max_reminders": 3,
+      "snooze_minutes": 10,
+      "voice_confirmation_required": false,
+      "family_notification": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# SpeechRecognition库及其依赖
+speechrecognition>=3.8.1
+pyaudio>=0.2.11
+
+# 离线识别引擎（可选）
+pocketsphinx>=0.1.15
+
+# 用于GUI应用
+tkinter  # 通常随Python一起安装，无需单独安装
+
+# 用于多线程处理
+threading  # Python标准库，无需单独安装

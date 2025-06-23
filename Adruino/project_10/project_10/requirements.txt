@@ -1,0 +1,31 @@
+# 基础依赖
+# GUI界面相关
+PyQt5>=5.15.0
+
+# 基础依赖
+numpy>=1.19.0
+requests>=2.25.0
+
+# 语音识别相关
+pyaudio>=0.2.11
+baidu-aip>=2.2.0
+SpeechRecognition>=3.8.0
+
+# 语音合成相关
+websocket-client>=1.2.0
+
+# 音频处理相关
+pydub>=0.25.0
+
+# 网络请求相关
+urllib3>=1.26.0
+certifi>=2021.5.25
+
+# JSON处理
+json5>=0.9.5
+
+# WebSocket支持
+websockets>=10.0
+
+# 兼容性支持（Python 2.x）
+subprocess32>=3.5.4; python_version < '3.0'

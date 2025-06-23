@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>适老化语音备忘录系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('datetime').textContent = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+        }
+
+        setInterval(updateTime, 1000);
+
+        // Mock functions for button interactions
+        function addMessage(text) {
+            const messageArea = document.getElementById('message-area');
+            const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            messageArea.innerHTML += `<p>[${time}] ${text}</p>`;
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTime();
+            addMessage('系统启动完成');
+
+            document.getElementById('start-record').addEventListener('click', () => {
+                addMessage('开始录音...');
+            });
+
+            document.getElementById('stop-record').addEventListener('click', () => {
+                addMessage('停止录音。');
+            });
+
+            document.getElementById('clear-reminders').addEventListener('click', () => {
+                addMessage('提醒已清除。');
+                document.getElementById('reminder-list').innerHTML = '<div class="no-reminder">暂无提醒</div>';
+            });
+
+            // Dialog logic
+            const exitDialog = document.getElementById('exit-dialog');
+            const closeButton = document.querySelector('.title-bar-controls .close');
+            
+            function showDialog() {
+                exitDialog.style.display = 'flex';
+            }
+
+            function hideDialog() {
+                exitDialog.style.display = 'none';
+            }
+
+            closeButton.addEventListener('click', showDialog);
+            document.getElementById('dialog-close-btn').addEventListener('click', hideDialog);
+            document.getElementById('dialog-no-btn').addEventListener('click', hideDialog);
+            document.getElementById('dialog-yes-btn').addEventListener('click', () => {
+                // In a real Electron app, you would close the window here.
+                // For the web version, we can just hide the dialog.
+                addMessage('系统已退出。');
+                hideDialog();
+                // Example: window.close(); or ipcRenderer.send('close-app');
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="window">
+        <div class="title-bar">
+            <div class="title-bar-title">
+                <!-- You can add an icon here if you have one -->
+                <!-- <img src="path/to/icon.png" alt="icon"> -->
+                <span>适老化语音备忘录系统</span>
+            </div>
+            <div class="title-bar-controls">
+                <button class="minimize">−</button>
+                <button class="maximize">◻</button>
+                <button class="close">×</button>
+            </div>
+        </div>
+        <div class="container">
+            <div id="exit-dialog" class="dialog-overlay">
+                <div class="dialog-box">
+                    <div class="dialog-header">
+                        <h3 class="dialog-title"><span>📝</span>确认退出</h3>
+                        <button class="dialog-close" id="dialog-close-btn">×</button>
+                    </div>
+                    <div class="dialog-content">
+                        <div class="dialog-icon">❓</div>
+                        <p class="dialog-message">确定要退出语音提醒系统吗？</p>
+                    </div>
+                    <div class="dialog-buttons">
+                        <button class="dialog-button no" id="dialog-no-btn">No</button>
+                        <button class="dialog-button yes" id="dialog-yes-btn">Yes</button>
+                    </div>
+                </div>
+            </div>
+            <header class="header">
+                <h1><span>🎙️</span>适老化语音备忘录系统</h1>
+                <p id="datetime"></p>
+            </header>
+            <main class="main-content">
+                <div class="left-column card">
+                    <h2 class="card-title"><span>💬</span>消息通知</h2>
+                    <div class="initial-message">系统就绪 - 点击开始录音按钮添加提醒</div>
+                    <div id="message-area" class="message-area">
+                        <!-- Messages will be added here by JavaScript -->
+                    </div>
+                </div>
+                <div class="middle-column">
+                    <button id="start-record" class="action-button"><span>▶️</span>开始录音</button>
+                    <button id="stop-record" class="action-button"><span>⏹️</span>停止录音</button>
+                    <button id="clear-reminders" class="action-button"><span>🗑️</span>清除提醒</button>
+                </div>
+                <div class="right-column card">
+                    <h2 class="card-title"><span>📌</span>提醒事项</h2>
+                    <div class="reminder-placeholder">--:--</div>
+                    <div id="reminder-list">
+                        <div class="no-reminder">暂无提醒</div>
+                        <!-- Reminder items will be added here -->
+                        <!-- Example of a reminder item -->
+                        <!-- 
+                        <div class="reminder-item">
+                            <strong>15:30</strong> - 下午吃药
+                        </div>
+                        -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
