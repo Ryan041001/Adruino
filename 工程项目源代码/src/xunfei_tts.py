@@ -128,7 +128,7 @@ class XunfeiTTS:
             
         thread.start_new_thread(run, ())
 
-    def synthesis(self, text, voice='x4_yezi', speed=50, pitch=50, volume=50):
+    def synthesis(self, text, voice='xiaoyan', speed=50, pitch=50, volume=50):
         """语音合成"""
         try:
             self.logger.info(f"开始语音合成: {text}")

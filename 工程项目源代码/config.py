@@ -43,13 +43,13 @@ for var in _required_env_vars:
 # GUI配置
 # =============================================================================
 
-# 主窗口配置 - 适配树莓派3B小屏幕(320*480)
+# 主窗口配置
 GUI_CONFIG = {
-    'WINDOW_WIDTH': 480,
-    'WINDOW_HEIGHT': 320,
-    'WINDOW_TITLE': '语音备忘录',
-    'FONT_SIZE': 10,
-    'LARGE_FONT_SIZE': 12
+    'WINDOW_WIDTH': 800,
+    'WINDOW_HEIGHT': 600,
+    'WINDOW_TITLE': '适老化语音备忘录系统',
+    'FONT_SIZE': 14,
+    'LARGE_FONT_SIZE': 18
 }
 
 # 按钮配置

@@ -54,91 +54,77 @@ class VoiceReminderGUI(QMainWindow):
         self.logger.info("Qt5 GUI界面初始化完成")
     
     def _init_ui(self):
-        """初始化用户界面 - 适配480*320横屏小屏幕"""
+        """初始化用户界面 - 4:3横屏布局"""
         self.setWindowTitle(GUI_CONFIG['WINDOW_TITLE'])
-        # 设置480*320横屏小屏幕尺寸
-        self.setGeometry(0, 0, 480, 320)
-        self.setFixedSize(480, 320)
+        # 设置4:3横屏尺寸
+        self.setGeometry(100, 100, 1024, 768)
+        self.setFixedSize(1024, 768)
         
         # 创建中央窗口部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # 主布局 - 水平布局适配横屏
-        main_layout = QHBoxLayout(central_widget)
-        main_layout.setSpacing(5)  # 减小间距
-        main_layout.setContentsMargins(5, 5, 5, 5)  # 减小边距
+        # 主布局 - 垂直布局
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(15, 15, 15, 15)
 
-        # 创建左侧时间和按钮区域
-        self._create_left_control_area(main_layout)
-        
-        # 创建右侧状态和提醒区域
-        self._create_right_info_area(main_layout)
+        # 创建顶部和底部两个QFrame
+        top_frame = QFrame()
+        bottom_frame = QFrame()
+
+        # 将两个frame添加到主布局，并设置比例
+        main_layout.addWidget(top_frame, 2)  # 比例为2
+        main_layout.addWidget(bottom_frame, 1) # 比例为1
+
+        # 在top_frame中创建时间区域
+        top_layout = QVBoxLayout(top_frame)
+        self._create_top_time_area(top_layout)
+
+        # 在bottom_frame中创建中间内容区域
+        bottom_layout = QHBoxLayout(bottom_frame)
+        bottom_layout.setSpacing(15)
+
+        # 左侧消息通知区域
+        self._create_left_message_area(bottom_layout)
+
+        # 中间按钮区域
+        self._create_center_buttons_area(bottom_layout)
+
+        # 右侧提醒信息区域（包含倒计时）
+        self._create_right_reminder_area(bottom_layout)
     
-    def _create_left_control_area(self, layout):
-        """创建左侧控制区域 - 包含时间和按钮"""
-        left_frame = QFrame()
-        left_frame.setObjectName("leftFrame")
-        left_frame.setFixedWidth(200)  # 固定宽度
-        left_layout = QVBoxLayout(left_frame)
-        left_layout.setSpacing(10)
-        left_layout.setContentsMargins(5, 5, 5, 5)
-        
-        # 时间显示区域
+    def _create_top_time_area(self, layout):
+        """创建顶部时间信息区域"""
         time_frame = QFrame()
         time_frame.setObjectName("timeFrame")
+        add_shadow(time_frame)
+        # time_frame.setMaximumHeight(180)
+        # time_frame.setMinimumHeight(180)
         time_layout = QVBoxLayout(time_frame)
-        time_layout.setSpacing(5)
-        time_layout.setContentsMargins(5, 5, 5, 5)
+        time_layout.setSpacing(10)
         
         # 系统标题
-        title_label = QLabel("🎙️ 语音备忘录")
+        title_label = QLabel("🎙️ 适老化语音备忘录系统")
         title_label.setObjectName("titleLabel")
         title_label.setAlignment(Qt.AlignCenter)
         title_font = QFont()
-        title_font.setPointSize(14)
+        title_font.setPointSize(24)
         title_font.setBold(True)
         title_label.setFont(title_font)
         
-        # 当前时间显示 - 进一步增大字体提高可读性
+        # 当前时间显示 - 超大时钟
         self.time_label = QLabel()
         self.time_label.setObjectName("timeLabel")
         self.time_label.setAlignment(Qt.AlignCenter)
         time_font = QFont()
-        time_font.setPointSize(28)  # 进一步增大字体提高可读性
+        time_font.setPointSize(96)  # 增大字体
         time_font.setBold(True)
         self.time_label.setFont(time_font)
         
         time_layout.addWidget(title_label)
         time_layout.addWidget(self.time_label)
-        
-        # 按钮区域
-        button_frame = QFrame()
-        button_frame.setObjectName("buttonFrame")
-        button_layout = QVBoxLayout(button_frame)
-        button_layout.setSpacing(5)  # 减小按钮间距
-        button_layout.setContentsMargins(5, 5, 5, 5)
-        
-        # 录音按钮 - 减小高度和字体
-        self.record_button = QPushButton(f"🎤\n{BUTTON_CONFIG['RECORD_BUTTON_TEXT']}")
-        self.record_button.setObjectName("recordButton")
-        self.record_button.setMinimumHeight(45)  # 减小按钮高度
-        self.record_button.setFont(QFont('', 10, QFont.Bold))  # 减小字体
-        
-        # 清除按钮 - 减小高度和字体
-        self.clear_button = QPushButton(f"🗑️\n{BUTTON_CONFIG['CLEAR_BUTTON_TEXT']}")
-        self.clear_button.setObjectName("clearButton")
-        self.clear_button.setMinimumHeight(45)  # 减小按钮高度
-        self.clear_button.setFont(QFont('', 10, QFont.Bold))  # 减小字体
-        
-        button_layout.addWidget(self.record_button)
-        button_layout.addWidget(self.clear_button)
-        button_layout.addStretch()
-        
-        left_layout.addWidget(time_frame)
-        left_layout.addWidget(button_frame)
-        
-        layout.addWidget(left_frame)
+        layout.addWidget(time_frame)
         
         # 定时更新时间
         self.time_timer = QTimer()
@@ -146,59 +132,112 @@ class VoiceReminderGUI(QMainWindow):
         self.time_timer.start(1000)  # 每秒更新
         self._update_time()
     
-    def _create_right_info_area(self, layout):
-        """创建右侧信息区域 - 包含状态、提醒和消息"""
-        right_frame = QFrame()
-        right_frame.setObjectName("rightFrame")
-        right_layout = QVBoxLayout(right_frame)
-        right_layout.setSpacing(5)
-        right_layout.setContentsMargins(5, 5, 5, 5)
+    def _create_left_message_area(self, layout):
+        """创建左侧消息通知区域"""
+        message_frame = QFrame()
+        message_frame.setObjectName("messageFrame")
+        add_shadow(message_frame)
+        message_frame.setFixedWidth(300)
+        message_layout = QVBoxLayout(message_frame)
+        message_layout.setSpacing(10)
         
-        # 状态显示区域
-        self.status_label = QLabel("欢迎使用语音备忘录系统")
+        # 消息标题
+        message_title = QLabel("💬 消息通知")
+        message_title.setObjectName("sectionTitle")
+        message_title.setAlignment(Qt.AlignCenter)
+        message_title.setFont(QFont('', 16, QFont.Bold))
+        
+        # 系统状态
+        self.status_label = QLabel("系统就绪")
         self.status_label.setObjectName("statusLabel")
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setMaximumHeight(40)
-        self.status_label.setFont(QFont('', 10, QFont.Bold))
+        self.status_label.setFont(QFont('', 14))
+        self.status_label.setWordWrap(True)
         
-        # 提醒信息区域 - 精简版
+        # 消息显示区域
+        self.message_area = QTextEdit()
+        self.message_area.setObjectName("messageArea")
+        self.message_area.setFont(QFont('', 12))
+        self.message_area.setMaximumHeight(400)
+        self.message_area.setReadOnly(True)
+        
+        message_layout.addWidget(message_title)
+        message_layout.addWidget(self.status_label)
+        message_layout.addWidget(self.message_area)
+        message_layout.addStretch()
+        
+        layout.addWidget(message_frame)
+    
+    def _create_center_buttons_area(self, layout):
+        """创建中间按钮区域"""
+        button_frame = QFrame()
+        button_frame.setObjectName("buttonFrame")
+        button_frame.setFixedWidth(300)
+        button_layout = QVBoxLayout(button_frame)
+        button_layout.setSpacing(30)
+        
+        # 录音按钮 - 大按钮
+        self.record_button = QPushButton(f"🎤\n{BUTTON_CONFIG['RECORD_BUTTON_TEXT']}")
+        self.record_button.setObjectName("recordButton")
+        self.record_button.setMinimumHeight(120)
+        self.record_button.setFont(QFont('', 18, QFont.Bold))
+        
+        # 删除停止按钮，录音可以自动识别暂停
+        
+        # 清除按钮 - 大按钮
+        self.clear_button = QPushButton(f"🗑️\n{BUTTON_CONFIG['CLEAR_BUTTON_TEXT']}")
+        self.clear_button.setObjectName("clearButton")
+        self.clear_button.setMinimumHeight(120)
+        self.clear_button.setFont(QFont('', 18, QFont.Bold))
+        
+        button_layout.addWidget(self.record_button)
+        # 移除停止按钮
+        button_layout.addWidget(self.clear_button)
+        button_layout.addStretch()
+        
+        layout.addWidget(button_frame)
+    
+    def _create_right_reminder_area(self, layout):
+        """创建右侧提醒信息区域（包含倒计时）"""
         reminder_frame = QFrame()
         reminder_frame.setObjectName("reminderFrame")
+        add_shadow(reminder_frame)
+        reminder_frame.setFixedWidth(300)
         reminder_layout = QVBoxLayout(reminder_frame)
-        reminder_layout.setSpacing(3)
-        reminder_layout.setContentsMargins(3, 3, 3, 3)
+        reminder_layout.setSpacing(10)
+        
+        # 提醒标题
+        reminder_title = QLabel("📝 提醒事项")
+        reminder_title.setObjectName("sectionTitle")
+        reminder_title.setAlignment(Qt.AlignCenter)
+        reminder_title.setFont(QFont('', 16, QFont.Bold))
         
         # 倒计时显示
         self.countdown_label = QLabel("--:--")
         self.countdown_label.setObjectName("countdownLabel")
         self.countdown_label.setAlignment(Qt.AlignCenter)
-        self.countdown_label.setFont(QFont('', 16, QFont.Bold))
+        self.countdown_label.setFont(QFont('', 28, QFont.Bold))
         
-        # 提醒列表 - 扩大显示区域
+        # 当前提醒显示
+        self.current_reminder_label = QLabel("暂无提醒")
+        self.current_reminder_label.setObjectName("currentReminderLabel")
+        self.current_reminder_label.setAlignment(Qt.AlignCenter)
+        self.current_reminder_label.setFont(QFont('', 14))
+        self.current_reminder_label.setWordWrap(True)
+        
+        # 提醒列表
         self.reminder_list = QListWidget()
         self.reminder_list.setObjectName("reminderList")
-        self.reminder_list.setMaximumHeight(90)  # 增大高度以利用删除当前提醒后的空间
-        self.reminder_list.setFont(QFont('', 7))
+        self.reminder_list.setFont(QFont('', 12))
+        self.reminder_list.setMaximumHeight(250)
         
+        reminder_layout.addWidget(reminder_title)
         reminder_layout.addWidget(self.countdown_label)
+        reminder_layout.addWidget(self.current_reminder_label)
         reminder_layout.addWidget(self.reminder_list)
+        reminder_layout.addStretch()
         
-        # 消息显示区域 - 精简版
-        self.message_area = QTextEdit()
-        self.message_area.setObjectName("messageArea")
-        self.message_area.setReadOnly(True)
-        self.message_area.setMaximumHeight(50)
-        self.message_area.setFont(QFont('', 7))
-        
-        right_layout.addWidget(self.status_label)
-        right_layout.addWidget(reminder_frame)
-        right_layout.addWidget(self.message_area)
-        
-        layout.addWidget(right_frame)
-    
-
-    
-
+        layout.addWidget(reminder_frame)
     
 
     
@@ -238,11 +277,11 @@ class VoiceReminderGUI(QMainWindow):
                 padding: 15px;
             }}
 
-            /* --- 顶部区域 - 小屏幕优化 --- */
+            /* --- 顶部区域 --- */
             #timeFrame {{
                 background-color: {PRIMARY_COLOR};
                 border: none;
-                padding: 5px;
+                padding: 20px;
             }}
 
             #titleLabel, #timeLabel {{
@@ -252,26 +291,38 @@ class VoiceReminderGUI(QMainWindow):
                 text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
             }}
             
-            #titleLabel {{ font-size: 14px; font-weight: bold; }}
-            #timeLabel {{ font-size: 28px; font-weight: bold; padding: 8px; }}
+            #titleLabel {{ font-size: 28px; font-weight: bold; }}
+            #timeLabel {{ font-size: 32px; font-weight: 500; }}
 
-            /* --- 状态区域 - 小屏幕优化 --- */
+            /* --- 统一分区标题 --- */
+            #sectionTitle {{
+                font-size: 18px;
+                font-weight: bold;
+                color: {PRIMARY_DARK};
+                padding: 5px 0;
+                margin-bottom: 10px;
+                background-color: transparent;
+                border: none;
+                border-bottom: 2px solid {PRIMARY_LIGHT};
+            }}
+
+            /* --- 左侧消息区 --- */
             #statusLabel {{
                 color: {TEXT_COLOR};
-                font-size: 10px;
+                font-size: 14px;
                 font-weight: 500;
-                padding: 5px;
+                padding: 12px;
                 background-color: #E9F5FE; /* 淡蓝色背景 */
-                border-radius: 4px;
+                border-radius: 8px;
                 border: 1px solid #BDE0FE;
             }}
 
             #messageArea {{
                 background-color: {BACKGROUND_COLOR};
                 border: 1px solid #E0E0E0;
-                border-radius: 4px;
-                padding: 5px;
-                font-size: 8px;
+                border-radius: 8px;
+                padding: 10px;
+                font-size: 13px;
                 color: {TEXT_SECONDARY_COLOR};
             }}
             
@@ -281,15 +332,15 @@ class VoiceReminderGUI(QMainWindow):
                  border: none;
             }}
 
-            /* 统一按钮基础样式 - 小屏幕优化 */
+            /* 统一按钮基础样式 */
             QPushButton {{
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 6px;  /* 减小内边距 */
-                font-size: 10px;  /* 减小字体 */
+                border-radius: 10px;
+                padding: 15px;
+                font-size: 18px;
                 font-weight: bold;
-                min-height: 45px; /* 减小按钮高度 */
+                min-height: 100px; /* 适度减小按钮高度，使其更协调 */
             }}
             
             QPushButton:hover {{
@@ -318,24 +369,34 @@ class VoiceReminderGUI(QMainWindow):
             #clearButton:hover {{ background-color: {WARNING_HOVER_COLOR}; }}
 
 
-            /* --- 提醒区域 - 小屏幕优化 --- */
+            /* --- 右侧提醒区 --- */
             #countdownLabel {{
                 color: {DANGER_COLOR};
-                font-size: 14px;
+                font-size: 36px;
                 font-weight: bold;
                 background-color: transparent;
                 border: none;
                 qproperty-alignment: 'AlignCenter';
             }}
 
+            #currentReminderLabel {{
+                color: {TEXT_COLOR};
+                font-size: 15px;
+                padding: 12px;
+                background: #FFF9E6; /* 淡黄色背景 */
+                border-radius: 8px;
+                border: 1px solid {WARNING_COLOR};
+                min-height: 70px;
+            }}
+
             #reminderList {{
                 border: 1px solid #E0E0E0;
-                border-radius: 4px;
-                font-size: 8px;
+                border-radius: 8px;
+                font-size: 14px;
             }}
 
             #reminderList::item {{
-                padding: 5px;
+                padding: 10px;
                 border-bottom: 1px solid #F0F0F0;
                 background-color: transparent;
             }}
@@ -348,7 +409,7 @@ class VoiceReminderGUI(QMainWindow):
                 background-color: {PRIMARY_COLOR};
                 color: white;
                 font-weight: bold;
-                border-radius: 3px;
+                border-radius: 6px;
             }}
         """)
     
@@ -359,8 +420,8 @@ class VoiceReminderGUI(QMainWindow):
         self.clear_button.clicked.connect(self._on_clear_clicked)
     
     def _update_time(self):
-        """更新时间显示 - 只显示时间不显示日期"""
-        current_time = datetime.now().strftime("%H:%M")
+        """更新时间显示"""
+        current_time = datetime.now().strftime("%Y年%m月%d日 %H:%M:%S")
         self.time_label.setText(current_time)
     
     def _on_record_clicked(self):
@@ -433,6 +494,10 @@ class VoiceReminderGUI(QMainWindow):
             active_reminders.sort(key=lambda r: r.scheduled_time)
             next_reminder = active_reminders[0]
             
+            self.current_reminder_label.setText(
+                f"最近提醒:\n{next_reminder.task}\n{next_reminder.scheduled_time.strftime('%H:%M')}"
+            )
+            
             # 更新主倒计时（显示最近提醒的倒计时）
             time_remaining = next_reminder.format_time_remaining() if hasattr(next_reminder, 'format_time_remaining') else None
             if time_remaining and time_remaining != "已到期":
@@ -440,6 +505,7 @@ class VoiceReminderGUI(QMainWindow):
             else:
                 self.countdown_label.setText("即将到时")
         else:
+            self.current_reminder_label.setText("暂无提醒")
             self.countdown_label.setText("--:--")
         
         # 更新提醒列表 - 显示所有活跃提醒的倒计时

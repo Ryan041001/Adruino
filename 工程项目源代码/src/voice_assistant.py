@@ -35,8 +35,7 @@ class VoiceAssistant:
         self.xunfei_tts = XunfeiTTS(XUNFEI_APP_ID, XUNFEI_API_KEY, XUNFEI_API_SECRET)
         
         # 初始化音频录制
-        self.audio = None
-        self._init_audio()
+        self.audio = pyaudio.PyAudio()
         
         # 初始化pygame用于音频播放
         pygame.mixer.init()
@@ -46,9 +45,6 @@ class VoiceAssistant:
             api_key=DEEPSEEK_API_KEY,
             base_url=DEEPSEEK_BASE_URL
         )
-        
-        # 临时文件列表，用于清理
-        self.temp_files = []
         
         # 移除jieba初始化，使用优化的LLM语义识别
         
@@ -62,28 +58,11 @@ class VoiceAssistant:
         except Exception as e:
             self.logger.error(f"百度语音识别客户端初始化失败: {e}")
     
-    def _init_audio(self):
-        """初始化音频设备"""
-        try:
-            self.audio = pyaudio.PyAudio()
-            self.logger.info("音频设备初始化成功")
-        except Exception as e:
-            self.logger.error(f"音频设备初始化失败: {e}")
-            self.audio = None
-    
     # 移除jieba相关方法，使用优化的LLM语义识别
     
     def _record_audio(self, duration: int = 5) -> Optional[str]:
         """录制音频并保存为临时文件"""
-        stream = None
-        temp_file_path = None
-        wf = None
-        
         try:
-            if not self.audio:
-                self.logger.error("音频设备未初始化")
-                return None
-            
             # 音频参数
             chunk = AUDIO_CONFIG['CHUNK_SIZE']
             format = pyaudio.paInt16
@@ -96,64 +75,34 @@ class VoiceAssistant:
                 channels=channels,
                 rate=rate,
                 input=True,
-                frames_per_buffer=chunk,
-                input_device_index=None  # 使用默认输入设备
+                frames_per_buffer=chunk
             )
             
             self.logger.info("开始录音...")
             frames = []
             
             for _ in range(0, int(rate / chunk * duration)):
-                try:
-                    data = stream.read(chunk, exception_on_overflow=False)
-                    frames.append(data)
-                except Exception as read_error:
-                    self.logger.warning(f"录音数据读取警告: {read_error}")
-                    continue
+                data = stream.read(chunk)
+                frames.append(data)
+            
+            stream.stop_stream()
+            stream.close()
             
             # 保存为临时文件
             temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
-            temp_file_path = temp_file.name
-            temp_file.close()
-            
-            # 添加到临时文件列表
-            self.temp_files.append(temp_file_path)
-            
-            wf = wave.open(temp_file_path, 'wb')
+            wf = wave.open(temp_file.name, 'wb')
             wf.setnchannels(channels)
             wf.setsampwidth(self.audio.get_sample_size(format))
             wf.setframerate(rate)
             wf.writeframes(b''.join(frames))
+            wf.close()
             
             self.logger.info("录音完成")
-            return temp_file_path
+            return temp_file.name
             
         except Exception as e:
             self.logger.error(f"录音失败: {e}")
-            # 清理可能创建的临时文件
-            if temp_file_path and os.path.exists(temp_file_path):
-                try:
-                    os.unlink(temp_file_path)
-                    if temp_file_path in self.temp_files:
-                        self.temp_files.remove(temp_file_path)
-                except:
-                    pass
             return None
-        
-        finally:
-            # 确保资源被正确释放
-            if wf:
-                try:
-                    wf.close()
-                except:
-                    pass
-            
-            if stream:
-                try:
-                    stream.stop_stream()
-                    stream.close()
-                except Exception as cleanup_error:
-                    self.logger.warning(f"音频流清理警告: {cleanup_error}")
     
     def listen_for_speech(self, timeout: int = 5) -> Optional[str]:
         """监听语音输入并转换为文本 - 增强错误处理和重试机制"""
@@ -173,7 +122,7 @@ class VoiceAssistant:
                 # 检查音频文件大小
                 if len(audio_data) < 1000:  # 音频文件太小
                     self.logger.warning(f"音频文件过小 ({len(audio_data)} bytes)，可能录音失败")
-                    self._cleanup_temp_file(audio_file)
+                    os.unlink(audio_file)
                     if attempt == max_retries - 1:
                         return None
                     continue
@@ -192,7 +141,7 @@ class VoiceAssistant:
                 })
                 
                 # 清理临时文件
-                self._cleanup_temp_file(audio_file)
+                os.unlink(audio_file)
                 
                 # 详细的结果处理
                 self.logger.info(f"百度API响应: {result}")
@@ -299,7 +248,7 @@ class VoiceAssistant:
                             pass  # 忽略pygame清理错误
                         time.sleep(0.1)  # 短暂等待
                         
-                        self._cleanup_temp_file(audio_file)
+                        os.unlink(audio_file)
                         self.logger.info(f"已删除临时音频文件: {audio_file}")
                         break
                     except Exception as e:
@@ -307,95 +256,6 @@ class VoiceAssistant:
                             self.logger.warning(f"删除临时音频文件失败 (尝试 {attempt + 1}): {e}")
                         else:
                             time.sleep(0.2)  # 等待后重试
-    
-    def _cleanup_temp_file(self, file_path: str):
-        """安全清理临时文件"""
-        if not file_path:
-            return
-        
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                if os.path.exists(file_path):
-                    os.unlink(file_path)
-                    self.logger.debug(f"已删除临时文件: {file_path}")
-                
-                # 从临时文件列表中移除
-                if file_path in self.temp_files:
-                    self.temp_files.remove(file_path)
-                break
-                
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    self.logger.warning(f"删除临时文件失败 (尝试 {attempt + 1}): {e}")
-                else:
-                    time.sleep(0.1)  # 短暂等待后重试
-    
-    def cleanup_all_temp_files(self):
-        """清理所有临时文件"""
-        for file_path in self.temp_files.copy():
-            self._cleanup_temp_file(file_path)
-    
-    def cleanup_resources(self):
-        """清理所有资源 - 按正确顺序避免资源竞争"""
-        cleanup_success = True
-        
-        try:
-            self.logger.info("开始清理语音助手资源...")
-            
-            # 1. 首先停止所有音频播放
-            try:
-                if pygame.mixer.get_init():
-                    pygame.mixer.music.stop()
-                    pygame.mixer.stop()  # 停止所有声音
-                    time.sleep(0.1)  # 给音频系统时间停止
-                    pygame.mixer.quit()
-                    self.logger.info("pygame音频系统已停止")
-            except Exception as e:
-                self.logger.warning(f"pygame清理警告: {e}")
-                cleanup_success = False
-            
-            # 2. 清理PyAudio资源
-            if self.audio:
-                try:
-                    # 确保没有活动的音频流
-                    self.audio.terminate()
-                    self.audio = None
-                    self.logger.info("PyAudio资源已清理")
-                except Exception as e:
-                    self.logger.warning(f"PyAudio清理失败: {e}")
-                    cleanup_success = False
-            
-            # 3. 最后清理临时文件
-            try:
-                self.cleanup_all_temp_files()
-                self.logger.info("临时文件已清理")
-            except Exception as e:
-                self.logger.warning(f"临时文件清理失败: {e}")
-                cleanup_success = False
-            
-            if cleanup_success:
-                self.logger.info("语音助手资源清理完成")
-            else:
-                self.logger.warning("语音助手资源清理部分失败，但已尽力清理")
-            
-        except Exception as e:
-            self.logger.error(f"资源清理过程中发生严重错误: {e}")
-            # 即使发生错误也要尝试基本清理
-            try:
-                if self.audio:
-                    self.audio.terminate()
-                    self.audio = None
-            except:
-                pass
-    
-    def __del__(self):
-        """析构函数 - 确保资源被正确释放"""
-        try:
-            self.cleanup_resources()
-        except Exception as e:
-            # 在析构函数中不应该抛出异常
-            pass
     
     def parse_intent(self, text: str) -> Optional[Dict]:
         """解析提醒意图和时间 - 使用增强可靠性的LLM语义识别"""

@@ -20,7 +20,6 @@ import threading
 from datetime import datetime
 from typing import Optional
 from dotenv import load_dotenv
-from PyQt5.QtCore import QTimer
 
 # 加载 .env 文件中的环境变量
 load_dotenv()
@@ -129,12 +128,9 @@ class VoiceReminderSystem:
     def _reset_to_ready_state(self):
         """重置系统到就绪状态，确保可以继续录音"""
         try:
-            # 确保在主线程中更新GUI
-            if self.gui_controller and hasattr(self.gui_controller, 'main_window'):
-                if self.gui_controller.main_window:
-                    # 使用Qt的信号槽机制确保线程安全
-                    QTimer.singleShot(0, lambda: self.gui_controller.show_welcome_screen())
-                    self.logger.info("系统状态已重置，可以继续添加新提醒")
+            if self.gui_controller:
+                self.gui_controller.show_welcome_screen()
+                self.logger.info("系统状态已重置，可以继续添加新提醒")
         except Exception as e:
             self.logger.error(f"重置状态失败: {e}")
     
@@ -169,15 +165,15 @@ class VoiceReminderSystem:
     def _restore_normal_display(self):
         """恢复正常显示状态"""
         try:
-            if self.gui_controller and hasattr(self.gui_controller, 'main_window'):
-                if self.gui_controller.main_window:
-                    # 使用Qt的信号槽机制确保线程安全
-                    QTimer.singleShot(0, lambda: self.gui_controller.main_window.status_label.setText("系统就绪"))
-                    
-                    # 延迟调用显示更新，避免竞态条件
-                    QTimer.singleShot(100, self._display_callback)
-                    
-                    self.logger.info("GUI状态已恢复正常")
+            if self.gui_controller:
+                # 重置状态标签为系统就绪
+                if hasattr(self.gui_controller, 'main_window') and self.gui_controller.main_window:
+                    self.gui_controller.main_window.status_label.setText("系统就绪")
+                
+                # 调用正常的显示更新
+                self._display_callback()
+                
+                self.logger.info("GUI状态已恢复正常")
         except Exception as e:
             self.logger.error(f"恢复正常显示失败: {e}")
     
@@ -324,64 +320,55 @@ class VoiceReminderSystem:
     
     def _process_voice_command(self):
         """处理语音命令"""
-        with self.state_lock:  # 添加状态锁保护
-            try:
-                self.current_state = "processing"
-                
-                if self.gui_controller:
-                    self.gui_controller.show_processing_screen()
-                    self.gui_controller.add_log_message("正在处理语音...")
-                
-                if not self.voice_assistant:
-                    raise Exception("语音助手未初始化")
-                
-                # 处理语音命令
-                result = self.voice_assistant.process_voice_command()
-                
-                if result and result['type'] == 'reminder':
-                    # 添加提醒
-                    reminder_data = result['data']
-                    reminder_id = self.reminder_manager.add_reminder(
-                        task=reminder_data['task'],
-                        scheduled_time=reminder_data['time'],
-                        original_text=reminder_data['original_text']
-                    )
-                    
-                    if reminder_id:
-                        self.logger.info(f"提醒添加成功: {reminder_id}")
-                        if self.gui_controller:
-                            self.gui_controller.add_log_message(f"提醒添加成功: {reminder_data['task']}")
-                    else:
-                        self._voice_callback("抱歉，添加提醒失败。")
-                        if self.gui_controller:
-                            self.gui_controller.add_log_message("提醒添加失败")
-                
-                elif result and result['type'] == 'chat':
-                    # 普通对话
-                    self.logger.info(f"对话内容: {result['data']['message']}")
-                    if self.gui_controller:
-                        self.gui_controller.add_log_message(f"对话: {result['data']['message']}")
-                
-            except Exception as e:
-                self.logger.error(f"语音命令处理失败: {e}")
-                try:
-                    if self.voice_assistant:
-                        self.voice_assistant.speak("抱歉，处理您的请求时出现了问题。")
-                except Exception as voice_error:
-                    self.logger.error(f"语音播报失败: {voice_error}")
-                
-                if self.gui_controller:
-                    self.gui_controller.add_log_message(f"处理失败: {e}")
+        try:
+            self.current_state = "processing"
             
-            finally:
-                # 安全地重置状态
-                try:
-                    self.current_state = "idle"
-                    self._reset_to_ready_state()
-                    # 延迟调用显示更新，避免竞态条件
-                    threading.Timer(0.1, self._display_callback).start()
-                except Exception as reset_error:
-                    self.logger.error(f"状态重置失败: {reset_error}")
+            if self.gui_controller:
+                self.gui_controller.show_processing_screen()
+                self.gui_controller.add_log_message("正在处理语音...")
+            
+            if not self.voice_assistant:
+                raise Exception("语音助手未初始化")
+            
+            # 处理语音命令
+            result = self.voice_assistant.process_voice_command()
+            
+            if result and result['type'] == 'reminder':
+                # 添加提醒
+                reminder_data = result['data']
+                reminder_id = self.reminder_manager.add_reminder(
+                    task=reminder_data['task'],
+                    scheduled_time=reminder_data['time'],
+                    original_text=reminder_data['original_text']
+                )
+                
+                if reminder_id:
+                    self.logger.info(f"提醒添加成功: {reminder_id}")
+                    if self.gui_controller:
+                        self.gui_controller.add_log_message(f"提醒添加成功: {reminder_data['task']}")
+                else:
+                    self._voice_callback("抱歉，添加提醒失败。")
+                    if self.gui_controller:
+                        self.gui_controller.add_log_message("提醒添加失败")
+            
+            elif result and result['type'] == 'chat':
+                # 普通对话
+                self.logger.info(f"对话内容: {result['data']['message']}")
+                if self.gui_controller:
+                    self.gui_controller.add_log_message(f"对话: {result['data']['message']}")
+            
+        except Exception as e:
+            self.logger.error(f"语音命令处理失败: {e}")
+            if self.voice_assistant:
+                self.voice_assistant.speak("抱歉，处理您的请求时出现了问题。")
+            if self.gui_controller:
+                self.gui_controller.add_log_message(f"处理失败: {e}")
+        
+        finally:
+            # 重置状态并确保GUI可以继续录音
+            self.current_state = "idle"
+            self._reset_to_ready_state()
+            self._display_callback()
     
     def _stop_current_operation(self):
         """停止当前操作"""
@@ -523,46 +510,26 @@ class VoiceReminderSystem:
     
     def shutdown(self):
         """关闭系统"""
-        with self.state_lock:  # 添加状态锁保护
-            try:
-                self.running = False
-                self.logger.info("正在关闭系统...")
-                
-                # 按顺序关闭各个组件，避免资源竞争
-                components_to_shutdown = [
-                    ("button_controller", self.button_controller, "cleanup"),
-                    ("web_server", self.web_server, "stop"),
-                    ("reminder_manager", self.reminder_manager, "shutdown"),
-                ]
-                
-                for name, component, method_name in components_to_shutdown:
-                    if component:
-                        try:
-                            method = getattr(component, method_name)
-                            method()
-                            self.logger.info(f"{name} 已关闭")
-                        except Exception as e:
-                            self.logger.warning(f"{name} 关闭失败: {e}")
-                
-                # 清理语音助手资源
-                if self.voice_assistant:
-                    try:
-                        self.voice_assistant.cleanup_resources()
-                        self.logger.info("语音助手资源已清理")
-                    except Exception as e:
-                        self.logger.warning(f"语音助手资源清理失败: {e}")
-                
-                # 确保GUI在主线程中关闭
-                if self.gui_controller and hasattr(self.gui_controller, 'app'):
-                    try:
-                        QTimer.singleShot(0, lambda: self.gui_controller.app.quit())
-                    except Exception as e:
-                        self.logger.warning(f"GUI关闭失败: {e}")
-                
-                self.logger.info("系统已关闭")
-                
-            except Exception as e:
-                self.logger.error(f"系统关闭失败: {e}")
+        try:
+            self.running = False
+            self.logger.info("正在关闭系统...")
+            
+            # 关闭各个组件
+            if self.button_controller:
+                self.button_controller.cleanup()
+            
+            if self.web_server:
+                self.web_server.stop()
+            
+            if self.reminder_manager:
+                self.reminder_manager.shutdown()
+            
+            # GUI控制器会在应用程序退出时自动关闭
+            
+            self.logger.info("系统已关闭")
+            
+        except Exception as e:
+            self.logger.error(f"系统关闭失败: {e}")
 
 def signal_handler(signum, frame):
     """信号处理器"""
